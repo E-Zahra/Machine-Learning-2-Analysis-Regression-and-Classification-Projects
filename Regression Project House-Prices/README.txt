@@ -1,97 +1,181 @@
 House Prices Regression Project (Ames Housing Dataset) – README
+=======================================================
 
 Hello Professor,
-This folder contains my full project for “House Prices: Advanced Regression ML Techniques”.
-I tried to keep the work clean and modular, so each notebook has a clear role, and I also exported each notebook to PDF for easier reviewing.
+This folder contains my full regression project for“House Prices: 
+Advanced Regression Techniques”. I tried to keep everything
+clean and modular, so each notebook has a clear role and the outputs from one
+step are reused in the next step.
 
 ────────────────────────────────────────────────────────────────────────────
 1) Project Goal
 ────────────────────────────────────────────────────────────────────────────
-The goal is to predict house sale prices (SalePrice) using the Ames Housing dataset.
-I focus on:
-- data cleaning and preprocessing
-- feature engineering and correlation checks
-- feature selection (LASSO) and model training (five Tree base models, XGBM,CatBoost,LightGBM,RandomForest,EnsembleModel)
-- producing a final Kaggle-style submission file
+Goal: predict house sale prices (SalePrice) from the Ames Housing dataset.
+
+Main focus of my work:
+- build pipeline (cleaning → preprocessing → features → modeling)
+- avoid data leakage and compare models fairly
+- reduce overfitting (because the dataset is not huge but has many features)
+
+Evaluation metric:
+- log-RMSE (Kaggle-style, done in log-space because prices are skewed)
 
 ────────────────────────────────────────────────────────────────────────────
-2) Files Included
+2) Dataset Details (Shapes)
 ────────────────────────────────────────────────────────────────────────────
-Notebooks (and their PDF versions):
-- 1- PreproccesingRegression.ipynb  +  1- PreproccesingRegression.pdf
-  Purpose: initial data loading, missing-value handling, skewness handling, and building a preprocessing pipeline.
-  Output: a prepared dataset saved for reuse.
-- Loads train.csv / test.csv (Kaggle data)  
-- Separates target (SalePrice) and features  
-- Handles missing values, categorical encoding, and scaling using Pipeline + - ColumnTransformer  
-- Applies log transform for the target / skewed numeric features (where appropriate)  
-- Saves the processed splits and metadata as prepared_data.pkl for reuse
+Raw Kaggle files:
+- train.csv: 1460 rows × 81 columns (includes target SalePrice)
+- test.csv : 1459 rows × 80 columns (no SalePrice)
 
-- 2- FeatureEngRegression.ipynb  +  2- FeatureEngRegression.pdf
-  Purpose: feature engineering and feature quality checks (especially correlation analysis and multicollinearity checks).
-  Output: an updated prepared dataset saved for modeling.
-- Loads prepared_data.pkl  
-- Performs correlation analysis with the target (to understand strongest predictors)  
-- Checks for redundancy / multicollinearity patterns in numeric features  
-- Adds engineered features (e.g., totals, ages, interactions/ratios, “has feature” indicators)  
-- Performs sanity checks on encodings (e.g., verifying binary features match their meaning)  
-- Saves an updated prepared dataset for modeling (depending on your notebook settings, it may overwrite or create a new pickle)
+After separating target from features:
+- X (features) in train: 1460 rows × 80 columns
 
-- 3-ModelingRegression.ipynb  +  3-ModelingRegression.pdf
-  Purpose: modeling stage. Includes feature selection using LASSO and training/evaluating models (and creating predictions).
-- Trains and evaluates multiple regression models  
-- Uses LASSO (and related linear models) for feature selection / shrinkage  
-- Trains stronger non-linear models ( XGBoost, LightGBM, CatBoost, RandomForest, EnsembleModel) and compares performance  
-- Produces the final submission file submission_xgboost.csv
+Train/Validation split used in the notebooks (80/20):
+- X_train: 1168 × 80
+- X_val  :  292 × 80
 
-Data / saved artifacts:
-- train.csv
-- test.csv
-- prepared_data.pkl
-  A saved “prepared data” object used to avoid repeating preprocessing across notebooks.
-- submission_xgboost.csv
-  Final submission file with two columns: Id and SalePrice.
+After preprocessing + encoding (Notebook 1):
+- X_train_preprocessed: 1168 × 200
+- X_val_preprocessed  :  292 × 200
+
+After feature engineering cleanup (Notebook 2) and saving again:
+- modeling matrix used in Notebook 3 starts at: 1168 × 208 (train), 292 × 208 (val), 1459 × 208 (test)
+
+After feature selection (LASSO in Notebook 3):
+- selected features: 58
+- final shapes for modeling:
+  • full train: 1460 × 58
+  • full test : 1459 × 58
 
 ────────────────────────────────────────────────────────────────────────────
-3) How to Run the Project (Recommended Order)
+3) Files Included (What is inside this folder)
 ────────────────────────────────────────────────────────────────────────────
-Please run the notebooks in this order:
-
+Notebooks (main work):
 1) 1- PreproccesingRegression.ipynb
 2) 2- FeatureEngRegression.ipynb
 3) 3-ModelingRegression.ipynb
 
-Each notebook saves outputs that the next notebook loads, so the order matters.
+Exports for easier viewing (no running needed):
+- PDF and HTML exports of each notebook are included in the GitHub folder
+  (same names as the notebooks, but .pdf and .html).
 
-If you want you can use the PDF files from the notebooks:
-1- PreproccesingRegression.pdf
-2- FeatureEngRegression..pdf
-3-ModelingRegression.pdf
-
-────────────────────────────────────────────────────────────────────────────
-4) Notes About Evaluation and Reproducibility
-────────────────────────────────────────────────────────────────────────────
-- I tried to avoid data leakage as much as possible. For example, whenever I needed to learn something from the data (imputation values, scaling parameters, encoding, etc.), I fit those steps on the training data and then applied the same fitted transformations to validation and test.
-
-- I used structured preprocessing pipelines so the exact same steps are applied consistently. This helps keep the workflow reproducible and reduces the chance of “accidental” differences between train/val/test processing.
-
-- In notebook 2, I do feature engineering based on correlation checks and sanity checks (for example I verified suspicious correlations such as CentralAir and fixed the encoding when needed). I also check for highly correlated features (multicollinearity) to reduce redundancy before modeling.
-
-- In notebook 3, I focus on modeling:
-  • I work in log-space (predicting the log of SalePrice) and convert predictions back to the original scale at the end, because house prices are skewed.
-  • I evaluate models using cross-validation (K-Fold) so the score is more reliable than a single split.
-  • For boosting models, I use early stopping during CV to reduce overfitting and choose a good number of trees.
-  • I compare multiple models fairly (same folds / same metric) including regularized linear models and tree-based models like XGBoost, LightGBM, and CatBoost.
-  • I apply feature selection using LASSO to keep only the most useful predictors and reduce noise. The selected feature set is then reused for each models and in the final training step for the chosen model.
-  • After choosing the best-performing model, I refit it on the combined training + validation data and generate the final test predictions and the submission file (`submission_xgboost.csv`).
-
-- I set random seeds (where possible) and keep the workflow split into 3 notebooks so it is easy to rerun, debug, and review each stage separately.
-
+Data / artifacts:
+- train.csv, test.csv
+- prepared_data.pkl (saved object used to reuse preprocessing/feature engineering)
+- submission_xgboost.csv (final prediction file: Id + SalePrice)
 
 ────────────────────────────────────────────────────────────────────────────
-5) Data Source
+4) How to Run the Project (Step-by-Step)
 ────────────────────────────────────────────────────────────────────────────
-Dataset: Kaggle – House Prices: Advanced Regression Techniques
-https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques
+Option A — Reproduce results by running the notebooks:
+
+(1) Download/clone the repository and go to:
+    Regression Project House-Prices/
+
+(2) Run notebooks in THIS order (important because outputs are reused):
+    1) 1- PreproccesingRegression.ipynb
+    2) 2- FeatureEngRegression.ipynb
+    3) 3-ModelingRegression.ipynb
+
+Option B — Only review (no code execution):
+- open the exported PDF files (or download the HTML files and open them in a browser)
+
+────────────────────────────────────────────────────────────────────────────
+5) What I Did in Each Notebook (Steps + Outputs)
+────────────────────────────────────────────────────────────────────────────
+
+Notebook 1 — Preprocessing (1- PreproccesingRegression.ipynb)
+-------------------------------------------------------------
+Main steps:
+- Load train.csv and test.csv
+- Separate target (SalePrice) and apply log transformation to target (log1p)
+- Split train into train/validation (80/20 → 1168 train, 292 val)
+- Handle missing values using consistent rules (so train/val/test are treated the same)
+- Fix data types and clean categories (so encoding works correctly)
+- Treat skewness in numeric features (log / shifted-log for very skewed columns)
+- Identify binary columns and one-hot encode nominal categorical features
+- Make sure no missing values remain at the end (train/val/test)
+
+Key output/result:
+- Final encoded feature matrices with 200 columns
+- Saved the prepared data object to prepared_data.pkl for reuse in later notebooks
+
+Notebook 2 — Feature Engineering + Correlation Checks (2- FeatureEngRegression.ipynb)
+-----------------------------------------------------------------------------------
+Main steps:
+- Load prepared_data.pkl
+- Check feature types again + sanity checks for encoded/binary variables
+  (example: verifying that binary encoding matches price differences)
+- Detect and remove an unexpected non-numeric column (“Condition2”) after encoding
+- Engineer new features to capture stronger patterns:
+  Examples of engineered ideas included:
+  - TotalArea, TotalBath, TotalPorch
+  - Age-related features (HouseAge / RemodAge / GarageAge)
+  - Quality × size features (like QualTotalArea / QualGrLivArea)
+  - Density / indicator features (like RoomDensity, HasFireplace)
+- Drop features that were constant or too weak (low usefulness / redundancy)
+- Re-check correlations after engineering (to confirm the new features add signal)
+
+Key output/result:
+- Final engineered dataset used for modeling starts with 208 features
+- Saved the updated prepared_data.pkl for the modeling notebook
+
+Notebook 3 — Modeling + Evaluation + Prediction (3-ModelingRegression.ipynb)
+---------------------------------------------------------------------------
+Main steps:
+- Load the updated prepared_data.pkl
+- Feature selection using LASSO (to reduce noise and overfitting):
+  → selected 58 final features
+- Train and compare strong tree-based models using 5-fold CV with log-RMSE:
+  • XGBoost
+  • LightGBM
+  • CatBoost
+  • Random Forest
+  • Ensemble = average of the 3 boosting models
+
+Extra evaluation focus (not only “lowest error”):
+- Overfit gap = (Validation log-RMSE − Train log-RMSE)
+- Validation standard deviation (stability across folds)
+- Residual analysis (residual plots/histograms and “worst error” examples)
+  In the residual plots, XGBoost and the ensemble looked more compact/centered
+  compared to models that showed wider spreads.
+
+Cross-validation summary (mean values):
+Model                        Train log-RMSE  Val log-RMSE      Gap   Val Std
+----------------------------------------------------------------------------
+CatBoost                           0.0753       0.1209   0.0456   0.0163
+Ensemble (avg XGB+LGBM+CAT)        0.0876       0.1236   0.0359   0.0170
+XGBoost                            0.1046       0.1302   0.0257   0.0183
+LightGBM                           0.0952       0.1304   0.0352   0.0176
+Random Forest                      0.0687       0.1384   0.0697   0.0170
+
+Model choice (final):
+- CatBoost and the ensemble had noticeably low validation scores and low validation std,
+  but their overfit gaps were still larger than XGBoost.
+- Random Forest had the largest overfit gap (strong memorization + weaker generalization).
+- LightGBM also showed noticeable overfitting and not-the-best fold stability.
+- XGBoost gave the most balanced result: smallest + most stable overfit gap.
+  So I chose XGBoost as the final model.
+
+Final output/result:
+- Fit the final XGBoost model on the full training data (1460 rows, 58 selected features)
+- Predicted the test set (1459 rows)
+- Saved predictions to: TestPredictions_xgboost.csv (Id, SalePrice)
+
+────────────────────────────────────────────────────────────────────────────
+6) Notes About Reproducibility / Good Practice
+────────────────────────────────────────────────────────────────────────────
+- I tried to prevent data leakage by fitting preprocessing steps on training data and
+  applying the same fitted transformations to validation and test.
+- I used structured preprocessing so the workflow stays consistent across splits.
+- I used 5-fold cross-validation to avoid relying on one split, and compared models
+  using the same metric and folds.
+- I also looked at overfit gap + stability (std) to choose a model that generalizes better.
+
+────────────────────────────────────────────────────────────────────────────
+7) Data Source
+────────────────────────────────────────────────────────────────────────────
+Kaggle competition: House Prices – Advanced Regression Techniques
+(Train/Test files come directly from this competition.)
 
 Thank you for reviewing my project!
